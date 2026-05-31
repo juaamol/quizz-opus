@@ -1,0 +1,168 @@
+<div class="app-container">
+  <header class="main-header">
+    <h1>My Quizz <span class="badge-tech">IT v21</span></h1>
+  </header>
+
+  @switch (state()) {
+    @case ('HOME') {
+      <div class="card intro-card fade-in">
+        <h2>Panel de Control</h2>
+
+        <div class="form-group">
+          <label>Paso 1: Selecciona tu carpeta de Markdown</label>
+          <input type="file" multiple (change)="onFolderSelected($event)" class="modern-input" />
+        </div>
+
+        @if (quizService.availableFiles().length > 0) {
+          <div class="form-group fade-in">
+            <label>Paso 2: Selecciona un test</label>
+            <select [(ngModel)]="selectedFile" (change)="onFileChange()" class="modern-input">
+              <option value="" disabled>-- Elige un archivo --</option>
+              @for (fileName of quizService.availableFiles(); track fileName) {
+                <option [value]="fileName">{{ fileName }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        @if (totalAvailable() > 0 && selectedFile()) {
+          <div class="setup-quiz fade-in">
+            <div class="button-stack">
+              @if (hasProgress()) {
+                <button class="btn-primary main-btn" (click)="startTest()">CONTINUAR TEST</button>
+                <button class="btn-outline btn-sm" (click)="resetTest()">
+                  Borrar progreso actual
+                </button>
+              } @else {
+                <button class="btn-primary main-btn" (click)="startTest()">COMENZAR TEST</button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @case ('QUIZ') {
+      <div class="quiz-layout fade-in">
+        <aside class="quiz-sidebar">
+          <div class="sidebar-content">
+            <button class="btn-back" (click)="state.set('HOME')">← Volver</button>
+            <h3>Progreso</h3>
+
+            <div class="progress-info">
+              <span class="count-big">{{ answeredCount() }}</span>
+              <span class="count-label"
+                >de {{ currentQuizQuestions().length }}<br />respondidas</span
+              >
+            </div>
+
+            <hr />
+
+            <div class="questions-grid">
+              @for (q of currentQuizQuestions(); track q.id) {
+                <button
+                  class="index-item"
+                  [class.is-answered]="q.userAnswer !== undefined"
+                  (click)="scrollToQuestion(q.id)"
+                >
+                  {{ q.id }}
+                </button>
+              }
+            </div>
+
+            <button class="btn-finish-sidebar" (click)="finishTest()">Finalizar y Corregir</button>
+          </div>
+        </aside>
+
+        <main class="quiz-main">
+          @for (q of currentQuizQuestions(); track q.id) {
+            <div class="question-block" [id]="'question-' + q.id">
+              <div class="question-header">
+                <span class="q-number">{{ q.id }}</span>
+                <h3 class="question-text">{{ q.text }}</h3>
+              </div>
+
+              <div class="options-container">
+                @for (opt of q.options; track opt) {
+                  <div
+                    class="option-card"
+                    [class.selected]="q.userAnswer === opt[0]"
+                    (click)="toggleOption(q.id, opt[0])"
+                  >
+                    <span class="option-letter">{{ opt[0] }}</span>
+                    <span class="option-content">{{ opt.substring(3) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </main>
+      </div>
+    }
+
+    @case ('RESULTS') {
+      <div class="quiz-layout fade-in">
+        <aside class="quiz-sidebar">
+          <div class="sidebar-content">
+            <h3>Resultados</h3>
+            <div class="progress-info">
+              <span class="count-big">{{ score() }}</span>
+              <span class="count-label">de {{ currentQuizQuestions().length }}<br />aciertos</span>
+            </div>
+            <hr />
+            <div class="questions-grid">
+              @for (q of currentQuizQuestions(); track q.id) {
+                <button
+                  class="index-item"
+                  [class.result-correct]="q.userAnswer === q.correctAnswer"
+                  [class.result-wrong]="
+                    q.userAnswer !== undefined && q.userAnswer !== q.correctAnswer
+                  "
+                  (click)="scrollToQuestion(q.id)"
+                >
+                  {{ q.id }}
+                </button>
+              }
+            </div>
+            <button class="btn-primary" style="width: 100%" (click)="reset()">INICIO</button>
+          </div>
+        </aside>
+
+        <main class="quiz-main">
+          <div class="review-list">
+            @for (q of currentQuizQuestions(); track q.id) {
+              <div class="question-block" [id]="'question-' + q.id">
+                <div class="question-header">
+                  <span class="q-number">{{ q.id }}</span>
+                  <h3 class="question-text">{{ q.text }}</h3>
+                </div>
+
+                <div class="options-container">
+                  @for (opt of q.options; track opt) {
+                    <div
+                      class="option-card review-mode"
+                      [class.is-correct]="opt[0] === q.correctAnswer"
+                      [class.is-wrong]="opt[0] === q.userAnswer && q.userAnswer !== q.correctAnswer"
+                      [class.was-selected]="opt[0] === q.userAnswer"
+                    >
+                      <span class="option-letter">{{ opt[0] }}</span>
+                      <span class="option-content">{{ opt.substring(3) }}</span>
+
+                      @if (opt[0] === q.correctAnswer) {
+                        <span class="result-badge correct-badge">Correcta</span>
+                      }
+                      @if (opt[0] === q.userAnswer && q.userAnswer !== q.correctAnswer) {
+                        <span class="result-badge wrong-badge">Tu fallo</span>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="theme-tag">Tema: {{ q.theme }}</div>
+              </div>
+            }
+          </div>
+        </main>
+      </div>
+    }
+  }
+</div>

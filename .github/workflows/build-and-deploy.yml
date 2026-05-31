@@ -1,0 +1,42 @@
+name: build and deploy
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        node-version: [22.x]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build:ci
+      - run: cp dist/quizz-opus/browser/index.html dist/quizz-opus/browser/404.html
+      - run: ls dist/quizz-opus
+      - run: touch dist/quizz-opus/browser/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        id: deployment
+        with:
+          name: github-pages
+          path: dist/quizz-opus/browser
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      pages: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
